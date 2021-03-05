@@ -13,7 +13,7 @@ MODULE SIM_PARAMS
     ! simulation variables
     ! PCOUNT must be divisible by the number of nodes running on it
     ! TODO: make the method of partitioning PCOUNT more automatic
-    INTEGER, PARAMETER :: PCOUNT = 27           ! number of particles
+    INTEGER, PARAMETER :: PCOUNT = 81           ! number of particles
     REAL, PARAMETER :: MASS = 0.1               ! mass per particle
     REAL, PARAMETER :: PI = 4.0 / ATAN(1.0)     ! retrieve pi from computer
     REAL, PARAMETER :: G = 0.01                 ! gravitational constant

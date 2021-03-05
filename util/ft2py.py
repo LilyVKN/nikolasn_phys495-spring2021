@@ -80,7 +80,7 @@ def read_FTCache(filename):
     return x, y, z
 
 # Make a temporary directory for each image frame
-os.makedirs("./tmp",exist_ok=True)
+os.makedirs("./tmp/python",exist_ok=True)
 
 # Initialize the figure and axes
 fig = plt.figure()
@@ -111,4 +111,4 @@ os.system("ffmpeg -r 24 -f image2 -i ./tmp/ft2py_%04d.png -vcodec \
     libx264 -crf 25 -pix_fmt yuv420p {}.mp4".format(output))
 
 # Remove all temporary files and the folder
-shutil.rmtree("tmp")
+shutil.rmtree("tmp/python")

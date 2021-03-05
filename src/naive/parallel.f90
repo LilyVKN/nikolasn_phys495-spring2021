@@ -20,9 +20,8 @@
 !       Hierarchical Tree Method. In Many-body tree methods in physics 
 !       (pp. 9-18). Cambridge: Cambridge University Press.
 !
-! TODO: Create submatrix caching system to prevent redundancies
 ! TODO: Implement different parallelization
-! TODO: Add progress readouts - e.g. system energy
+! TODO: Add progress readouts - e.g. system energy, simulation timer, etc.
 PROGRAM main
     ! load the shared simulation parameters
     use SIM_PARAMS
@@ -77,7 +76,7 @@ PROGRAM main
         call execute_command_line('mkdir -p ' // dir_name)
 
         ! create a directory for temporary files
-        call execute_command_line('mkdir -p /tmp')
+        call execute_command_line('mkdir -p ./tmp/fortran')
 
         ! run initialization on the particles
         call part_init_default(pos,vel,PCOUNT,(DOMAIN(1)/2.0))
@@ -139,6 +138,9 @@ PROGRAM main
 
             END DO
 
+            ! delete all the temporary submatrix cache's for last frame
+            call execute_command_line('rm ./tmp/fortran/*.submat')
+
             ! write the data to frame cache for rendering
             ! TODO: move to caching module
             WRITE(filename,'(A,"/SPH_fortran_",I4.4,".fcache")') dir_name, i
@@ -189,8 +191,10 @@ PROGRAM main
 
             ! calculate this node's force submatrix
             data_new = 0.0
-            DO j = 1, inum_procs - 1
-                call force_grav_submat(pos,irank,j,ipartition,force_mat)
+            ! start by calculating the upper triangle to help with caching
+            DO j = irank, irank + inum_procs - 1
+                call force_grav_submat(pos,irank,MODULO(j,ipartition), &
+                    ipartition,force_mat)
                 data_new = data_new + SUM(force_mat,1)
             END DO
 

@@ -24,7 +24,7 @@ Since this program utilizes MPI for parallelization, it should be run using
 multiple process. Since the simulation parameters must be set such that the
 particle count is divisible by the number of worker nodes, the program must be
 run with the appropriate number of processes (i.e. # of worker nodes + the root)
-The default setup uses 27 particles and 3 worker nodes. To run the default, use:
+The default setup uses 81 particles and 3 worker nodes. To run the default, use:
 
     $ mpirun -n 4 ./parallel
 
