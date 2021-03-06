@@ -64,8 +64,10 @@ PROGRAM main
     !   The root should decide the appropriate parallelization method based on
     !   node and particle counts
 
-    ! calculate the partition
-    ipartition = PCOUNT / (inum_procs - 1)
+    ! calculate the partition data
+    idiv_count = (inum_procs - 1) * SUBDIV  ! total number of subdivisions
+    ipart = PCOUNT / idiv_count             ! number of particles per submatrix
+    inode_part = PCOUNT / (inum_procs - 1)  ! total number of particles per node
 
     ! determine which process is the root - i.e. the main node
     IF (irank .eq. 0) THEN
@@ -123,8 +125,8 @@ PROGRAM main
                 ! retrieve each node's partition of position data
                 data_new = 0.0      ! clear the temporary data array
                 DO inode = 1, inum_procs-1
-                    call MPI_RECV(data_new(((inode-1)*ipartition)+1: & 
-                        (inode*ipartition),:),ipartition*3,MPI_REAL,inode, &
+                    call MPI_RECV(data_new(((inode-1)*inode_part)+1: & 
+                        (inode*inode_part),:),inode_part*3,MPI_REAL,inode, &
                         MPI_ANY_TAG,MPI_COMM_WORLD,status,ierr)
                 END DO
                 pos = data_new      ! update the positions
@@ -132,8 +134,8 @@ PROGRAM main
                 ! retrieve each node's partition of velocity data
                 data_new = 0.0      ! clear the temporary data array
                 DO inode = 1, inum_procs-1
-                    call MPI_RECV(data_new(((inode-1)*ipartition)+1: & 
-                        (inode*ipartition),:),ipartition*3,MPI_REAL,inode, &
+                    call MPI_RECV(data_new(((inode-1)*inode_part)+1: & 
+                        (inode*inode_part),:),inode_part*3,MPI_REAL,inode, &
                         MPI_ANY_TAG,MPI_COMM_WORLD,status,ierr)
                 END DO
                 vel = data_new      ! update the velocities
@@ -166,9 +168,9 @@ PROGRAM main
 
     ELSE
         ! allocate the force submatrix for calculation substeps
-        ALLOCATE(force_mat(ipartition,ipartition,3))
+        ALLOCATE(force_mat(ipart,ipart,3))
         ! allocate a temporary array for intermediate particle calculations
-        ALLOCATE(data_new(ipartition,3))
+        ALLOCATE(data_new(inode_part,3))
 
         ! calculate half-substep time period for updating dynamics
         rperiod = 1.0 / (48.0 * SUBSTEPS_PER_FRAME)
@@ -196,31 +198,37 @@ PROGRAM main
 
             ! calculate this node's force submatrix
             data_new = 0.0
+            isubdiv = 1
             ! start by calculating the upper triangle to help with caching
-            DO j = irank, irank + inum_procs - 1
-                call force_grav_submat(pos,irank,MODULO(j,ipartition), &
-                    ipartition,force_mat)
-                data_new = data_new + SUM(force_mat,1)
+            DO k = (irank - 1) * SUBDIV + 1, irank * SUBDIV
+                DO l = k, k + idiv_count
+                    call force_grav_submat(pos,k,MODULO(l-1,idiv_count)+1, &
+                        ipart,force_mat)
+                    data_new((isubdiv-1)*ipart+1:isubdiv*ipart,:) = &
+                        data_new((isubdiv-1)*ipart+1:isubdiv*ipart,:) +&
+                        SUM(force_mat,1)
+                END DO
+                isubdiv = isubdiv + 1
             END DO
 
             ! kick-drift-kick
-            pos(((irank-1)*ipartition)+1:(irank*ipartition),:) = & 
-                pos(((irank-1)*ipartition)+1:(irank*ipartition),:) + & 
-                (vel(((irank-1)*ipartition)+1:(irank*ipartition),:) * rperiod)
-            vel(((irank-1)*ipartition)+1:(irank*ipartition),:) = &
-                vel(((irank-1)*ipartition)+1:(irank*ipartition),:) + & 
+            pos(((irank-1)*inode_part)+1:(irank*inode_part),:) = & 
+                pos(((irank-1)*inode_part)+1:(irank*inode_part),:) + & 
+                (vel(((irank-1)*inode_part)+1:(irank*inode_part),:) * rperiod)
+            vel(((irank-1)*inode_part)+1:(irank*inode_part),:) = &
+                vel(((irank-1)*inode_part)+1:(irank*inode_part),:) + & 
                 (data_new * (2.0 * rperiod))
-            pos(((irank-1)*ipartition)+1:(irank*ipartition),:) = &
-                pos(((irank-1)*ipartition)+1:(irank*ipartition),:) + &
-                (vel(((irank-1)*ipartition)+1:(irank*ipartition),:) * rperiod)
+            pos(((irank-1)*inode_part)+1:(irank*inode_part),:) = &
+                pos(((irank-1)*inode_part)+1:(irank*inode_part),:) + &
+                (vel(((irank-1)*inode_part)+1:(irank*inode_part),:) * rperiod)
 
             ! MERGE =======================================================
 
             ! send this node's partition of particle data - pos then vel
-            call MPI_SEND(pos(((irank-1)*ipartition)+1:(irank*ipartition),:), &
-                ipartition*3,MPI_REAL,0,0,MPI_COMM_WORLD,ierr)
-            call MPI_SEND(vel(((irank-1)*ipartition)+1:(irank*ipartition),:), &
-                ipartition*3,MPI_REAL,0,0,MPI_COMM_WORLD,ierr)
+            call MPI_SEND(pos(((irank-1)*inode_part)+1:(irank*inode_part),:), &
+                inode_part*3,MPI_REAL,0,0,MPI_COMM_WORLD,ierr)
+            call MPI_SEND(vel(((irank-1)*inode_part)+1:(irank*inode_part),:), &
+                inode_part*3,MPI_REAL,0,0,MPI_COMM_WORLD,ierr)
         END DO
 
         ! securely deallocate the temporary data memory

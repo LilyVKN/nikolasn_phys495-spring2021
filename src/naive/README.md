@@ -6,12 +6,14 @@
 The software is currently hard-coded with the simulation parameters held in the
 FORTRAN module file [`sim_params.f90`](./sim_params.f90). In order to operate
 properly, the particle count, `PCOUNT`, is optimized to be divisible by the 
-number of worker nodes you run the program with (i.e. if `PCOUNT` is set to `10`
-and there are `3` workers, the particle count will be pared to `9`). The other parameters are described in the module file. The timesteps represent the number
-of frames at the standard 24 FPS which are further broken into substeps for
-refining the simulation which is given by `SUBSTEPS_PER_FRAME`. It is not
-recommended to change the `DOMAIN` array since, currently, the video output is
-limited to a 4 x 4 x 4 grid.
+number of worker nodes and the number of subdivistions you run the program with
+(i.e. if `PCOUNT` is set to `19` and there are `3` workers with `2`
+subdivisions,`6` subdivisions total, the particle count will be pared to `18`). 
+
+The timesteps represent the number of frames at the standard 24 FPS which are
+further broken into substeps for refining the simulation which is given by
+`SUBSTEPS_PER_FRAME`. It is not recommended to change the `DOMAIN` array since,
+currently, the video output is limited to a 4 x 4 x 4 grid.
 
 A Makefile is included in the directory compatible with Linux (see 
 [Dependencies](#dependencies)). To build, simply run:
