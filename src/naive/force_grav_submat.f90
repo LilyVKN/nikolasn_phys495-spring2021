@@ -26,7 +26,7 @@
 !     submatrix (j,i)
 SUBROUTINE force_grav_submat(pos,i,j,M,submat)
     ! load the shared simulation parameters
-    use SIM_PARAMS
+    use sim_params
     ! arguments
     REAL, DIMENSION(PCOUNT,3), INTENT(IN) :: pos   ! particle positions
     INTEGER, INTENT(IN) :: i                        ! submatrix 1st index
@@ -39,6 +39,34 @@ SUBROUTINE force_grav_submat(pos,i,j,M,submat)
     ! cache file management
     LOGICAL :: lexist
     CHARACTER(len=80) :: filename, lockname
+
+    ! perform the inverse square avoiding zeros and taking advantage of the
+    ! force matrix skew-symmetry (i.e. for submatrices on the diagonal, 
+    ! i == j, the submatrix is also skew-symmetric) - no caching is needed
+    IF (i == j) THEN
+        ! fill the submatrix with the distance vector r_i - r_j
+        temp_mat = SPREAD(pos(((i-1)*M)+1:i*M,:),1,M)
+        submat = SPREAD(pos(((j-1)*M)+1:j*M,:),2,M)
+        submat = temp_mat - submat
+
+        ! iterate over the upper triangle
+        DO k = 1,M
+            DO l = k + 1,M
+                ! calculate the norm and ignore zero values
+                r = NORM2(submat(k,l,:))
+                IF (r /= 0) THEN
+                    ! apply the softening, inverse square, and normalization
+                    r = ((r ** 2) + SOFTENING) * r
+                    r = 1.0 / r
+
+                    ! calculate the gravitational force and skew-symmetry
+                    submat(k,l,:) = -G * MASS * r * submat(k,l,:)
+                    submat(l,k,:) = -submat(k,l,:)
+                END IF
+            END DO
+        END DO
+        RETURN
+    ENDIF
 
     ! create the filename grav_i-j_M.submat for upper triangle submatrices
     WRITE(filename,'("./tmp/fortran/grav_",I2.2,"-",I2.2,"_",I4.4,".submat")') &
@@ -65,43 +93,21 @@ SUBROUTINE force_grav_submat(pos,i,j,M,submat)
         submat = SPREAD(pos(((j-1)*M)+1:j*M,:),2,M)
         submat = temp_mat - submat
         
-        ! perform the inverse square avoiding zeros and taking advantage of the
-        ! force matrix skew-symmetry (i.e. for submatrices on the diagonal, 
-        ! i == j, the submatrix is also skew-symmetric)
-        IF (i == j) THEN
-            ! iterate over the upper triangle
-            DO k = 1,M
-                DO l = k + 1,M
-                    ! calculate the norm and ignore zero values
-                    r = NORM2(submat(k,l,:))
-                    IF (r /= 0) THEN
-                        ! apply the softening, inverse square, and normalization
-                        r = ((r ** 2) + SOFTENING) * r
-                        r = 1.0 / r
+        ! iterate over all elements
+        DO k = 1,M
+            DO l = 1,M
+                ! calculate the norm and ignore zero values
+                r = NORM2(submat(k,l,:))
+                IF (r /= 0) THEN
+                    ! apply the softening, inverse square, and normalization
+                    r = ((r**2) + SOFTENING) * r
+                    r = 1.0 / r
 
-                        ! calculate the gravitational force and skew-symmetry
-                        submat(k,l,:) = -G * MASS * r * submat(k,l,:)
-                        submat(l,k,:) = -submat(k,l,:)
-                    END IF
-                END DO
+                    ! calculate the gravitational force for this element
+                    submat(k,l,:) = -G * MASS * r * submat(k,l,:)
+                END IF
             END DO
-        ELSE
-            ! iterate over all elements
-            DO k = 1,M
-                DO l = 1,M
-                    ! calculate the norm and ignore zero values
-                    r = NORM2(submat(k,l,:))
-                    IF (r /= 0) THEN
-                        ! apply the softening, inverse square, and normalization
-                        r = ((r**2) + SOFTENING) * r
-                        r = 1.0 / r
-
-                        ! calculate the gravitational force for this element
-                        submat(k,l,:) = -G * MASS * r * submat(k,l,:)
-                    END IF
-                END DO
-            END DO
-        ENDIF
+        END DO
 
         ! write the submatrix to the file for submatrix caching
         IF (i > j) THEN                        ! for upper triangle submatrices
@@ -130,7 +136,7 @@ SUBROUTINE force_grav_submat(pos,i,j,M,submat)
         ! read the submatrix data from the file for caching
         OPEN(file=filename,unit=17)
 
-        IF (i >= j) THEN                        ! for upper triangle submatrices
+        IF (i > j) THEN                         ! for upper triangle submatrices
             DO k = 1, M                         ! read the values as normal
                 DO l = 1, M
                     READ(17,*) submat(k,l,:)

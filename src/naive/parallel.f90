@@ -24,14 +24,14 @@
 ! TODO: Add progress readouts - e.g. system energy, simulation timer, etc.
 PROGRAM main
     ! load the shared simulation parameters
-    use SIM_PARAMS
+    use sim_params
     ! load the MPI FORTRAN header to access the MPI library
     include 'mpif.h'
     
     ! TODO: remove implicit variables
     
     ! particle simulation data
-    REAL, DIMENSION(PCOUNT,3) :: pos, vel
+    REAL, DIMENSION(:,:), ALLOCATABLE :: pos, vel
     REAL, DIMENSION(:,:), ALLOCATABLE :: data_new       ! temporary data array
     REAL, DIMENSION(:,:,:), ALLOCATABLE :: force_mat
 
@@ -54,6 +54,11 @@ PROGRAM main
         WRITE(*,*) "no single process support yet :<"
         GOTO 10
     END IF
+
+    ! make sure to optimize the parameters before allocation and simulation
+    call optimize_params(inum_procs - 1)
+    ALLOCATE(pos(PCOUNT,3))
+    ALLOCATE(vel(PCOUNT,3))
 
     ! DETERMINE METHOD ========================================================
     !   The root should decide the appropriate parallelization method based on
@@ -222,6 +227,10 @@ PROGRAM main
         DEALLOCATE(data_new)
         DEALLOCATE(force_mat)
     END IF
+
+    ! safely deallocate the particle data
+    DEALLOCATE(pos)
+    DEALLOCATE(vel)
 
     ! Safely exit the MPI program
 10  call MPI_FINALIZE(ierr)

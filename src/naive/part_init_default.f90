@@ -16,7 +16,7 @@
 ! TODO: Create a better velocity initialization function
 SUBROUTINE part_init_default(pos,vel,icount,r)
     ! load the shared simulation parameters
-    use SIM_PARAMS
+    use sim_params
     REAL, DIMENSION(icount,3), INTENT(INOUT) :: pos
     REAL, DIMENSION(icount,3), INTENT(INOUT) :: vel
 

@@ -100,14 +100,14 @@ while(os.path.exists(filename)):
     # Read the positions from the file and convert it to a graph
     x, y, z = read_FTCache(filename)
     scatter._offsets3d = (x, y, z)
-    plt.savefig('./tmp/ft2py_{:04d}.png'.format(frame))
+    plt.savefig('./tmp/python/ft2py_{:04d}.png'.format(frame))
 
     # increment the file for the frame and update the filename
     frame += 1
     filename = file_template % frame
 
 # Compile to mp4 using ffmpeg
-os.system("ffmpeg -r 24 -f image2 -i ./tmp/ft2py_%04d.png -vcodec \
+os.system("ffmpeg -r 24 -f image2 -i ./tmp/python/ft2py_%04d.png -vcodec \
     libx264 -crf 25 -pix_fmt yuv420p {}.mp4".format(output))
 
 # Remove all temporary files and the folder
