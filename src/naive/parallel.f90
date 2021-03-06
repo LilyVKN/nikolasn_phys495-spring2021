@@ -143,10 +143,10 @@ PROGRAM main
                 ! GLOBAL CALCULATIONS/MANAGEMENT ==============================
                 !   none - the nodes do the integration
 
-            END DO
+                ! delete all the temporary submatrix cache's for last substep
+                call execute_command_line('rm ./tmp/fortran/*.submat')
 
-            ! delete all the temporary submatrix cache's for last frame
-            call execute_command_line('rm ./tmp/fortran/*.submat')
+            END DO
 
             ! write the data to frame cache for rendering
             ! TODO: move to caching module
