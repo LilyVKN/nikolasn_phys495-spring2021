@@ -1,0 +1,16 @@
+# binaries / compiled files
+*.exe
+*.mod
+*.o
+*.obj
+*.out
+*.pdb
+
+# ignore assets / media
+*.mp4
+*.png
+*.vdb
+
+# temporary / cached files
+**/tmp
+*.fcache
