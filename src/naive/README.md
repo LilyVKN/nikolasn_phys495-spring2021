@@ -15,6 +15,9 @@ further broken into substeps for refining the simulation which is given by
 `SUBSTEPS_PER_FRAME`. It is not recommended to change the `DOMAIN` array since,
 currently, the video output is limited to a 4 x 4 x 4 grid.
 
+For a more comprehensive overview of the simulation parameters and the details
+of the calculation methods, see the [`DESIGNDOC`](./DESIGNDOC.md)
+
 A Makefile is included in the directory compatible with Linux (see 
 [Dependencies](#dependencies)). To build, simply run:
     

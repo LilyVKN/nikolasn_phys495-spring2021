@@ -8,10 +8,10 @@ parallel: part_init_default.o force_grav_submat.o sim_params.o
 	$(MPIFC) -o parallel.out part_init_default.o force_grav_submat.o \
 		parallel.f90 sim_params.o
 
-part_init_default.o: part_init_default.f90
+part_init_default.o: part_init_default.f90 sim_params.o
 	$(FC) -c part_init_default.f90
 
-force_grav_submat.o: force_grav_submat.f90
+force_grav_submat.o: force_grav_submat.f90 sim_params.o
 	$(FC) -c force_grav_submat.f90
 
 sim_params.o: sim_params.f90
