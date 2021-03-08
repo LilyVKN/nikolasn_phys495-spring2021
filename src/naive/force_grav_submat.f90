@@ -19,12 +19,17 @@
 !     submat : REAL, DIMENSION(M,M)
 !       the submatrix output of size MxM which store the force between the
 !       particles indicated by the submatrix indices
+!     energy : REAL
+!       the output of the potential contributed by these particles. Only the
+!       first instance of the matrix will add to the total energy since the
+!       cached data is stored as force vectors. this also helps prevent double
+!       counting particle pairs.
 !
 !   notes =====================================================================
 !     the force interaction matrix is symmetric, which means any submatrix where
 !     i == j is also symmetric and the transpose of submatrix (i,j) is equal to
 !     submatrix (j,i)
-SUBROUTINE force_grav_submat(pos,i,j,M,submat)
+SUBROUTINE force_grav_submat(pos,i,j,M,submat,energy)
     ! load the shared simulation parameters
     use sim_params
     ! arguments
@@ -33,12 +38,16 @@ SUBROUTINE force_grav_submat(pos,i,j,M,submat)
     INTEGER, INTENT(IN) :: j                        ! submatrix 2nd index
     INTEGER, INTENT(IN) :: M                        ! submatrix size (MxM)
     REAL, DIMENSION(M,M,3), INTENT(OUT) :: submat   ! submatrix to return
+    REAL, INTENT(OUT) :: energy                     ! potential from the forces
     
     REAL, DIMENSION(M,M,3) :: temp_mat  ! a temporary matrix for reducing memory
 
     ! cache file management
     LOGICAL :: lexist
     CHARACTER(len=80) :: filename, lockname
+
+    ! initialize the energy to zero
+    energy = 0.0
 
     ! perform the inverse square avoiding zeros and taking advantage of the
     ! force matrix skew-symmetry (i.e. for submatrices on the diagonal, 
@@ -55,6 +64,9 @@ SUBROUTINE force_grav_submat(pos,i,j,M,submat)
                 ! calculate the norm and ignore zero values
                 r = NORM2(submat(k,l,:))
                 IF (r /= 0) THEN
+                    ! add this particle's contribution to the potential
+                    energy = energy + (1.0 / r)
+
                     ! apply the softening, inverse square, and normalization
                     r = ((r ** 2) + SOFTENING) * r
                     r = 1.0 / r
@@ -65,6 +77,10 @@ SUBROUTINE force_grav_submat(pos,i,j,M,submat)
                 END IF
             END DO
         END DO
+
+        ! multiply the energy by the appropriate common factor
+        energy = - G * (MASS**2) * energy
+
         RETURN
     ENDIF
 
@@ -88,7 +104,7 @@ SUBROUTINE force_grav_submat(pos,i,j,M,submat)
         OPEN(file=filename,unit=17)     ! create the cache file
         OPEN(file=lockname,unit=18)     ! create the lock
 
-        ! fill the submatrix with the distance vector r_i - r_j
+        ! fill the submatrix with the displacement vector r_i - r_j
         temp_mat = SPREAD(pos(((i-1)*M)+1:i*M,:),1,M)
         submat = SPREAD(pos(((j-1)*M)+1:j*M,:),2,M)
         submat = temp_mat - submat
@@ -99,6 +115,9 @@ SUBROUTINE force_grav_submat(pos,i,j,M,submat)
                 ! calculate the norm and ignore zero values
                 r = NORM2(submat(k,l,:))
                 IF (r /= 0) THEN
+                    ! add this particle's contribution to the potential
+                    energy = energy + (1.0 / r)
+
                     ! apply the softening, inverse square, and normalization
                     r = ((r**2) + SOFTENING) * r
                     r = 1.0 / r
@@ -123,8 +142,14 @@ SUBROUTINE force_grav_submat(pos,i,j,M,submat)
                 END DO
             END DO
         ENDIF                                   ! ignore diagonal submatrices
+        
         CLOSE(17)
-        CLOSE(18,status="DELETE")               ! delete the lock - we're done
+        CLOSE(18,status="DELETE",iostat=ios)    ! delete the lock - we're done
+
+        IF (ios /= 0) THEN 
+            WRITE(*,'("Error on lock deletion: ",I4)') ios
+            WRITE(*,*) char(9), "File: ", lockname
+        ENDIF
 
     ELSE    ! if the cache already exists, read the data
                 
@@ -151,10 +176,12 @@ SUBROUTINE force_grav_submat(pos,i,j,M,submat)
             submat = -submat        ! for skew-symmetric data, make it negative
         ENDIF
 
-        ! skew-symmetric caching is only needed once, so it's easier to delete
-        ! it now rather than trying to sync on the timeframes and delete each
-        ! file in a loop in the other nodes
+        ! close the cache file
         CLOSE(17)
-
+        
     ENDIF
+
+    ! multiply the energy by the appropriate common factor
+    energy = - G * (MASS**2) * energy
+
 END SUBROUTINE

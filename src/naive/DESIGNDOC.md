@@ -60,8 +60,9 @@ DO i = 1,M
 END DO
 ``` 
 First, the matrix is filled with the displacement vectors, (**r**<sub>i</sub> -
-**r**<sub>j</sub>) which is itself a skew-symmetric displacement matrix. Then
-for each value, the length of that vector is calculated (i.e. the distance
+**r**<sub>j</sub>) which is itself a skew-symmetric displacement matrix. These
+values can also be used to calculate the potential energy between the particles.
+Then for each value, the length of that vector is calculated (i.e. the distance
 between the i-th and j-th particle) in order to apply the inverse square for the
 gravity. A softening parameter is included here as well which prevents extreme
 forces over large time steps during close encounters between particles. In the
@@ -144,10 +145,16 @@ signal of `-1`. The entire array of particle data (positions and velocities)
 must then be broadcast to each node. All these operations are performed using
 `MPI_BCAST()`.
 
-The calculation phase is handled entirely by the nodes as there's no global
-data manipulation to perform. Each node sums over their own force submatrices in
-order to calculate the total force on their subset of particles. Finally the
-worker nodes perform the leap-frog integration to update their subset.
+The calculation phase is handled mostly by the nodes as they perform both force
+and integration. Each node sums over their own force submatrices in order to
+calculate the total force on their subset of particles. This same process
+simultaneously calculates the potential energy. In this way only the first
+instance of the submatrix will contribute to energy calculations (i.e. cached
+submatrices are ignored for energy) which prevents double counting energy
+contributions. Finally the worker nodes perform the leap-frog integration to
+update their subset. Meanwhile, the root performs the trivial calculation of
+kinetic energy which simply sums over the square of the velocity array. This
+helps optimize CPU time on the root.
 
 During the merging stage, each node sends its particles' data back to the root
 which must collate the data into the array of all particles. This program does
@@ -156,10 +163,14 @@ array before updating the position values. The same process is then repeated for
 the particle velocities. The data passing is performed using pairs of 
 `MPI_SEND()`and `MPI_RECV()` calls. This method was chosen to make sure the data
 is passed in a specific order. The MPI blocking is desired since all the nodes
-must be synchronized before moving to the next timestep.
+must be synchronized before moving to the next timestep. When the particle data
+is all updated, the nodes combine their potential energy calculations to be sent
+to the root using the function `MPI_REDUCE()` with the operation `MPI_SUM`.
 
-The root must then perform the global file-saving operations for each frame (not
-each substep) before entering the loop again.
+The root must then perform a few global operations. For every substep, the
+energy is updated by adding the combined potential energies to the kinetic
+energy calculated before. Additionally, the root performs the file-saving
+operations for each frame (not each substep) before entering the loop again.
 
 Each node must then finalize their process. The root starts this by broadcasting
 `-1` as the substep number to signal to each node that it should stop

@@ -30,6 +30,8 @@ be divisible by the number of nodes. To run the default, use:
 
     $ mpirun -n 4 ./parallel.out
 
+The code will output the total current energy for each frame.
+
 ## Retrieving the Output
 When you run the program, the output of the simulation is stored in a 
 timestamped folder `./SPH_fortran_dd-mm-yy_HHMM` as `*.fcache` files. The format
@@ -43,10 +45,23 @@ display, `$ python3 ./ft2py.py -h`. As an example usage:
 will compile all the frames of the `.fcache` files into the video file 
 `./output.mp4` using the python `matplotlib` 3D libraries.
 
-For convenience *all* cache files can be deleted using `$ make clear_cache`
+For convenience *all* cache files including the simulation output can be deleted
+using `$ make clear_cache`. Be sure to save any required data before using this
+option.
 
 ## Dependencies <a name=dependencies> </a>
 This software requires an MPI library installed on Linux computer(s). This code
 was built and tested using [MPICH 3.3.2](https://www.mpich.org). The Makefile
 uses the `gfortran` compiler and the MPI-specific compiler `mpifort` provided by
 the MPICH distribution. 
+
+## Known Issues
+The currently implemented file-lock system of preventing concurrent access to
+data occasionally fails especially for small data sets. The lock file fails to
+be deleted in FORTRAN's call to `CLOSE(18,status='DELETE')`. This will sometimes
+cause further fatal errors in the next substep for nodes trying to read the
+cached submatrix data while it's being written. For larger data sets, the nodes
+will rarely overlap in submatrix calculations and so fatal error is especially
+less likely. This behavior has only been observed in the Visual Studio Code
+terminal; however there is no reason to believe that it is exclusive to that
+environment.

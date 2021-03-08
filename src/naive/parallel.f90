@@ -34,6 +34,7 @@ PROGRAM main
     REAL, DIMENSION(:,:), ALLOCATABLE :: pos, vel
     REAL, DIMENSION(:,:), ALLOCATABLE :: data_new       ! temporary data array
     REAL, DIMENSION(:,:,:), ALLOCATABLE :: force_mat
+    REAL :: energy, rtemp
 
     ! file management variables
     INTEGER, DIMENSION(8) :: date_values
@@ -71,6 +72,7 @@ PROGRAM main
 
     ! determine which process is the root - i.e. the main node
     IF (irank .eq. 0) THEN
+
         ! SETUP SIMULATION ====================================================
 
         ! create directory for caching
@@ -118,7 +120,9 @@ PROGRAM main
                 !   there is no node-specific data to be distributed here
 
                 ! CALCULATE ===================================================
-                !   usually only other nodes will be doing granular work
+                
+                ! calculate the kinetic energy of the system before the update
+                energy = 0.5 * MASS * SUM(vel**2)
 
                 ! MERGE =======================================================
 
@@ -140,13 +144,22 @@ PROGRAM main
                 END DO
                 vel = data_new      ! update the velocities
 
+                rtemp = 0.0
+                ! retrieve the sum of all the node's calculated potential energy
+                call MPI_REDUCE(energy,rtemp,1,MPI_REAL,MPI_SUM,0, &
+                    MPI_COMM_WORLD,ierr)
+
                 ! GLOBAL CALCULATIONS/MANAGEMENT ==============================
-                !   none - the nodes do the integration
+                
+                ! add the potential energy to the total energy
+                energy = energy + rtemp
 
                 ! delete all the temporary submatrix cache's for last substep
                 call execute_command_line('rm ./tmp/fortran/*.submat')
 
             END DO
+
+            WRITE(*,'("Current energy: ",D12.6)') energy
 
             ! write the data to frame cache for rendering
             ! TODO: move to caching module
@@ -196,17 +209,25 @@ PROGRAM main
             ! CALCULATE ===================================================
             !   use the leapfrog kick-drift-kick method
 
+            energy = 0.0
+
             ! calculate this node's force submatrix
             data_new = 0.0
             isubdiv = 1
             ! start by calculating the upper triangle to help with caching
             DO k = (irank - 1) * SUBDIV + 1, irank * SUBDIV
                 DO l = k, k + idiv_count
+                    ! calculate (or retrieve from cache) this submatrix
                     call force_grav_submat(pos,k,MODULO(l-1,idiv_count)+1, &
-                        ipart,force_mat)
+                        ipart,force_mat,rtemp)
+
+                    ! add the force contributions of this submatrix to the total
                     data_new((isubdiv-1)*ipart+1:isubdiv*ipart,:) = &
                         data_new((isubdiv-1)*ipart+1:isubdiv*ipart,:) +&
                         SUM(force_mat,1)
+
+                    ! update the energy
+                    energy = energy + rtemp
                 END DO
                 isubdiv = isubdiv + 1
             END DO
@@ -229,6 +250,10 @@ PROGRAM main
                 inode_part*3,MPI_REAL,0,0,MPI_COMM_WORLD,ierr)
             call MPI_SEND(vel(((irank-1)*inode_part)+1:(irank*inode_part),:), &
                 inode_part*3,MPI_REAL,0,0,MPI_COMM_WORLD,ierr)
+
+            ! send the potential energy contributions this node has tracked
+            call MPI_REDUCE(energy,rtemp,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD, &
+                ierr)
         END DO
 
         ! securely deallocate the temporary data memory
