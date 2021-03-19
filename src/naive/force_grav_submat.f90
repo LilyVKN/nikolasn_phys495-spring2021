@@ -24,12 +24,15 @@
 !       first instance of the matrix will add to the total energy since the
 !       cached data is stored as force vectors. this also helps prevent double
 !       counting particle pairs.
+!     istat : INTEGER
+!       cache status flag: the output is 0 for a cache miss, 1 indicates a
+!       cache-hit
 !
 !   notes =====================================================================
 !     the force interaction matrix is symmetric, which means any submatrix where
 !     i == j is also symmetric and the transpose of submatrix (i,j) is equal to
 !     submatrix (j,i)
-SUBROUTINE force_grav_submat(pos,i,j,M,submat,energy)
+SUBROUTINE force_grav_submat(pos,i,j,M,submat,energy,istat)
     ! load the shared simulation parameters
     use sim_params
     ! arguments
@@ -39,6 +42,7 @@ SUBROUTINE force_grav_submat(pos,i,j,M,submat,energy)
     INTEGER, INTENT(IN) :: M                        ! submatrix size (MxM)
     REAL, DIMENSION(M,M,3), INTENT(OUT) :: submat   ! submatrix to return
     REAL, INTENT(OUT) :: energy                     ! potential from the forces
+    INTEGER, INTENT(OUT) :: istat
     
     REAL, DIMENSION(M,M,3) :: temp_mat  ! a temporary matrix for reducing memory
 
@@ -48,6 +52,7 @@ SUBROUTINE force_grav_submat(pos,i,j,M,submat,energy)
 
     ! initialize the energy to zero
     energy = 0.0
+    istat = 0
 
     ! perform the inverse square avoiding zeros and taking advantage of the
     ! force matrix skew-symmetry (i.e. for submatrices on the diagonal, 
@@ -152,7 +157,9 @@ SUBROUTINE force_grav_submat(pos,i,j,M,submat,energy)
         ENDIF
 
     ELSE    ! if the cache already exists, read the data
-                
+        
+        istat = 1   ! set the status flag to indicate this is a cache-hit
+
         DO  ! keep testing to see if there's a lock on the file before accessing
             INQUIRE(file=lockname,exist=lexist)
             IF (.not.lexist) EXIT
