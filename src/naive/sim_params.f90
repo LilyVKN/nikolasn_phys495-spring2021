@@ -16,7 +16,7 @@ MODULE sim_params
     ! simulation variables
     INTEGER :: PCOUNT = 486                     ! number of particles
     REAL, PARAMETER :: MASS = 0.1               ! mass per particle
-    REAL, PARAMETER :: PI = 4.0 / ATAN(1.0)     ! retrieve pi from computer
+    REAL, PARAMETER :: PI = 4.0 * ATAN(1.0)     ! retrieve pi from computer
     REAL, PARAMETER :: G = 0.01                 ! gravitational constant
     REAL, PARAMETER :: SOFTENING = 0.04         ! softening parameter
 
