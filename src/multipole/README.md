@@ -34,6 +34,5 @@ increase the floating-point precision in future.
         Bulletin of the Seismological Society of America, 61(2), pp.375-381.  
 [2] Bosch, W. (2000) On the Computation of Derivatives of Legendre
         Functions. Physics and Chemistry of the Earth (A), 25(9-11), pp.655-659.  
-[3] Pfalzner, S., & Gibbon, P. (2005). The Fast Multipole Method. In
-        Many-body tree methods in physics (pp. 126-148). Cambridge: Cambridge
-        University Press.
+[3] Pfalzner, S., & Gibbon, P. (2005). Many-body tree methods in physics. 
+        Cambridge: Cambridge University Press.

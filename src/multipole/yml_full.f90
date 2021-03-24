@@ -9,7 +9,9 @@
 !
 !   arguments (in) ------------------------------------------------------------
 !     l_max : INTEGER
-!       the degree of the angular component, must be in the range [0,inf)
+!       the highest degree of the polynomial to calculate to. it must be
+!       non-negative, [0,inf), for providing values to the infinite series of
+!       spherical harmonics
 !     theta : REAL
 !       the polar angle (colatitude), should be in range [0, pi]
 !     phi : REAL

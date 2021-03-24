@@ -3,7 +3,8 @@
 ! the values are stored in (l+1)^2 size arrays ordered by increasing m, then by
 ! increasing l (i.e. / M_0,0, M_-1,1, M_0,1, M_1,1, M_-2,2, ... , M_l,l /).
 ! because the high l, m < 0 values are increasingly larger, the values can
-! overflow fairly easily.
+! overflow fairly easily. the mono-, di-, and quadrupoles were verified using
+! the derived equations in Cartesian coordinates.
 !
 !   arguments (in) ------------------------------------------------------------
 !     pos : REAL, DIMENSION(icount,3)
@@ -48,7 +49,7 @@ SUBROUTINE multipole(pos,icount,val,l_max,moments)
         call yml_full(l_max,theta,phi,curr_moment)
 
         ! apply the radial component of r^l by cumulative multiplication over l
-        istart_ind = 1
+        istart_ind = 2
         DO l = 1, l_max
             curr_moment(istart_ind:) = curr_moment(istart_ind:) * r
             istart_ind = istart_ind + (2 * l + 1)
