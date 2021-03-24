@@ -20,11 +20,18 @@ SUBROUTINE part_init_default(pos,vel,icount,r)
     REAL, DIMENSION(icount,3), INTENT(INOUT) :: pos
     REAL, DIMENSION(icount,3), INTENT(INOUT) :: vel
 
+    REAL :: rand_val
+
+    call RANDOM_SEED()
+
     ! initialize the particles
     DO i = 1, icount
-        rTheta = 2.0 * PI * RAND()          ! random azimuthal angle [0, 2*pi]
-        rPhi = PI * (RAND() - 0.5)          ! random polar angle [-pi/2, +pi/2]
-        rRadius = RAND() * r                ! random distance from center
+        call RANDOM_NUMBER(rand_val)
+        rTheta = 2.0 * PI * rand_val        ! random azimuthal angle [0, 2*pi]
+        call RANDOM_NUMBER(rand_val)
+        rPhi = PI * (rand_val - 0.5)        ! random polar angle [-pi/2, +pi/2]
+        call RANDOM_NUMBER(rand_val)
+        rRadius = rand_val * r              ! random distance from center
 
         ! set position in a spherically even distribution
         pos(i,1) = COS(rTheta) * SIN(rPhi)
