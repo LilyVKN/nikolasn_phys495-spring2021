@@ -43,16 +43,17 @@ SUBROUTINE multipole(pos,icount,val,l_max,moments)
         ! translate the values from Cartesian to spherical coordinates
         r = SQRT(SUM(pos(i,:)**2))      ! r = SQRT(x**2 + y**2 + z**2)
         theta = ACOS(pos(i,3)/r)        ! theta = ACOS(z/r)
-        phi = ATAN(pos(i,2)/pos(i,1))   ! phi = ATAN(y/x)
+        phi = ATAN2(pos(i,2),pos(i,1))   ! phi = ATAN(y/x)
 
-        ! calculate the angular component
+        ! calculate the complex conjugate of the angular component
         call yml_full(l_max,theta,phi,curr_moment)
+        curr_moment = CONJG(curr_moment)
 
         ! apply the radial component of r^l by cumulative multiplication over l
-        istart_ind = 2
+        istart = 2
         DO l = 1, l_max
-            curr_moment(istart_ind:) = curr_moment(istart_ind:) * r
-            istart_ind = istart_ind + (2 * l + 1)
+            curr_moment(istart:) = curr_moment(istart:) * r
+            istart = istart + (2 * l + 1)
         END DO
 
         ! add the multipole moments from this particle to the total
@@ -61,7 +62,4 @@ SUBROUTINE multipole(pos,icount,val,l_max,moments)
 
     ! multiply the weighting value for all the particles
     moments = val * moments
-
-    ! apply the complex conjugate of the Yml (only complex contribution to Mml)
-    moments = CONJG(moments)
 END SUBROUTINE multipole

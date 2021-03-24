@@ -47,7 +47,7 @@ SUBROUTINE dyml_full(l_max,theta,phi,yml_vals,dyml_dtheta,dyml_dphi)
     REAL :: temp, prefactor
 
     ! for l of 0, the yml_vals is simply 1.0
-    IF (l == 0) RETURN
+    IF (l_max == 0) RETURN
 
     ! make sure to clear all the values
     yml_vals = (1.0,0.0)
@@ -75,7 +75,7 @@ SUBROUTINE dyml_full(l_max,theta,phi,yml_vals,dyml_dtheta,dyml_dphi)
 
             ! apply the prefactor of sqrt((l-m)!/(l+m)!)
             yml_vals(i - m) = prefactor * temp
-            yml_vals(i + m) = prefactor / temp
+            yml_vals(i + m) = prefactor * (1.0 / temp)
 
             ! apply the phi-component
             yml_vals(i - m) = yml_vals(i - m) * EXP(-j * m * phi)

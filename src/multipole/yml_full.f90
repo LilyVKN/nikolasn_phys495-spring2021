@@ -39,9 +39,7 @@ SUBROUTINE yml_full(l_max,theta,phi,result)
     REAL :: temp, prefactor
 
     ! for l of 0, the result is simply 1.0
-    IF (l == 0) THEN
-        RETURN
-    ENDIF
+    IF (l_max == 0) RETURN
 
     ! apply the normalization factor for the l = 0, m = 0 value
     result(1) = SQRT(PI_FACTOR)
@@ -55,12 +53,12 @@ SUBROUTINE yml_full(l_max,theta,phi,result)
         ! set the common l-dependent prefactor
         prefactor = SQRT((2 * l + 1) * PI_FACTOR)
         result(i) = prefactor
-        
+
         ! reset the temporary value for the m-dependent prefactor, (l-m)!/(l+m)!
         temp = 1.0
         DO m = 1, l
             temp = temp * SQRT((l + m) * (l - m + 1.0))
-            
+
             ! apply all the normalization constants to the results
             result(i - m) = prefactor * temp
             result(i + m) = prefactor * (1.0 / temp)

@@ -43,7 +43,7 @@ SUBROUTINE dpmlcos_full(l_max,theta,result,deriv)
 
     ! add the initial values of P and exit if these satisfy the arguments
     result(1) = 1.0             ! P_0,0(cos(theta))
-    IF (l == 0) RETURN
+    IF (l_max == 0) RETURN
 
     ! calculate the basic trig values needed for l >= 1
     sin_val = SIN(THETA)
