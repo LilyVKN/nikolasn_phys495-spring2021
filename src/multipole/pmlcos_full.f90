@@ -29,7 +29,7 @@ SUBROUTINE pmlcos_full(l_max,theta,result)
     REAL, DIMENSION((l_max+1)**2), INTENT(OUT) :: result
 
     ! variables to store reused trigonometric calculations
-    REAL :: sin_val, cos_val, cot_val
+    REAL :: sin_val, cos_val, cot_val, factorial
 
     ! initialize result to zero which becomes useful for recursion
     result = 0.0
@@ -63,11 +63,19 @@ SUBROUTINE pmlcos_full(l_max,theta,result)
         istart_ind = ind + 1
 
         ! start the recursion of P_m-1,n based on P_m,n and P_m+1,n
-        DO m = l, -l + 1, -1
+        DO m = l, 0, -1
             result(ind - 1) = (2 * m * cot_val * result(ind)) + result(ind + 1)
             result(ind - 1) = -result(ind - 1) / ((l + m) * (l - m + 1))
 
             ! move to the next value
+            ind = ind - 1
+        END DO
+
+        factorial = 1.0
+        DO m = 1, l
+            factorial = -factorial / ((l + m) * (l - m + 1))
+            result(ind) = result(ind + (2 * m)) * factorial
+
             ind = ind - 1
         END DO
 

@@ -55,8 +55,7 @@ SUBROUTINE pmlcos(m,l,theta,result)
         ! calculate some convenient reused trig values
         sin_val = SIN(theta)
         cos_val = COS(theta)
-        cot_val = cos_val / sin_val
-
+        cot_val = 1.0 / TAN(theta)
         ! calculate P_ll(cos(theta)), the initial value
         P_curr = ((0.5 * sin_val)**l)
         DO i = l + 1, (2 * l)
@@ -69,14 +68,20 @@ SUBROUTINE pmlcos(m,l,theta,result)
         ! start the recursion of P_m-1,n based on P_m,n and P_m+1,n
         P_next = 0.0
         P_last = 0.0
-        DO m_curr = l, m + 1, -1
+        DO m_curr = l, ABS(m) + 1, -1
             P_next = (2 * m_curr * cot_val * P_curr) + P_last
-            P_next = -P_next / ((l + m_curr) * (l - m_curr + 1))
+            P_next = -P_next / ((l + m_curr) * (l - m_curr + 1.0))
 
             ! move the recursion values forward
             P_last = P_curr
             P_curr = P_next
         END DO
+
+        IF (m < 0) THEN
+            DO m_curr = 1, ABS(m)
+                P_curr = -P_curr / ((l + m_curr) * (l - m_curr + 1.0))
+            END DO
+        ENDIF
 
         ! set the result to the final recursion value
         result = P_curr

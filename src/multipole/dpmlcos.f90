@@ -30,11 +30,11 @@
 SUBROUTINE dpmlcos(m,l,theta,result,deriv)
     ! argument variables
     INTEGER, INTENT(IN) :: m, l
-    REAL, DIMENSION(:), INTENT(IN) :: theta
-    REAL, DIMENSION(SIZE(theta)), INTENT(OUT) :: result, deriv
+    REAL, INTENT(IN) :: theta
+    REAL, INTENT(OUT) :: result, deriv
 
     ! variables to store intermediate calculations
-    REAL, DIMENSION(SIZE(theta)) :: sin_val, csc_val, cos_val, cot_val, &
+    REAL :: sin_val, csc_val, cos_val, cot_val, &
                                     P_next, P_curr, P_last
 
     ! ensure the order and degree are valid (l in [0,inf); m in [-l,l])
@@ -73,23 +73,35 @@ SUBROUTINE dpmlcos(m,l,theta,result,deriv)
         DO i = l + 1, (2 * l)           ! multiply by the factor (2l)! / l!
             P_curr = P_curr * i
         END DO
+
+        ! apply the standard sign convention for the P_ll value
+        IF (MODULO(l,2).EQ.1) P_curr = -P_curr
         
         ! start the recursion of P_m-1,n based on P_m,n and P_m+1,n
         P_next = 0.0
         P_last = 0.0
-        DO m_curr = l, m + 1, -1
-            P_next = (2 * m_curr * cot_val * P_curr) - P_last
-            P_next = P_next / ((l + m_curr) * (l - m_curr + 1))
+        DO m_curr = l, ABS(m) + 1, -1
+            P_next = (2 * m_curr * cot_val * P_curr) + P_last
+            P_next = -P_next / ((l + m_curr) * (l - m_curr + 1))
 
             ! move the values forward
             P_last = P_curr
             P_curr = P_next
-
-            ! update the current derivative using the current Pnm values
-            deriv = (m_curr + 1) * cos_val * P_curr
-            deriv = deriv - (m_curr + l + 1) * P_last
-            deriv = deriv * csc_val
         END DO
+
+        IF (m < 0) THEN
+            P_next = 1.0
+            DO m_curr = 1, ABS(m) - 1
+                P_next = -P_next / ((l + m_curr) * (l - m_curr + 1.0))
+            END DO
+            P_last = P_last * P_next
+            P_curr = P_curr * (-P_next) / ((l - m) * (l + m + 1.0))
+        ENDIF
+
+        ! update the current derivative using the current Pnm values
+        deriv = (m + 1) * cos_val * P_curr
+        deriv = deriv - (m + l + 1) * P_last
+        deriv = deriv * csc_val
 
         ! set the result to the final iteration
         result = P_curr
