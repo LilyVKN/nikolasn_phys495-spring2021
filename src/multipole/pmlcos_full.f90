@@ -42,13 +42,31 @@ SUBROUTINE pmlcos_full(l_max,theta,result)
     sin_val = SIN(THETA)
     cos_val = COS(THETA)
 
+    ! calculate some convenient, reused trig values to reduce calculations
+    cot_val = cos_val / sin_val
+
+    IF (sin_val.EQ.(1.0)) THEN
+        cot_val = 0.0
+        cos_val = 0.0
+    ENDIF
+
     result(2) = 0.5 * sin_val   ! P_(-1),1(cos(theta))
     result(3) = cos_val         ! P_0,1(cos(theta))
     result(4) = -sin_val        ! P_1,1(cos(theta))
     IF (l_max == 1) RETURN
 
-    ! calculate some convenient, reused trig values to reduce calculations
-    cot_val = cos_val / sin_val
+    IF (ABS(cos_val).EQ.(1.0)) THEN
+        result = (0.0,0.0)
+        
+        ind = 1
+        DO l = 0, l_max
+            ind = ind + l
+            result(ind) = 1.0
+            ind = ind + l + 1
+        END DO
+
+        RETURN
+    ENDIF
 
     ! set the start index for the current value of l
     istart_ind = 5
@@ -62,8 +80,11 @@ SUBROUTINE pmlcos_full(l_max,theta,result)
         ! set the next start index to be after this l value
         istart_ind = ind + 1
 
+        result(ind - 1) = -cot_val * result(ind)
+        ind = ind - 1
+
         ! start the recursion of P_m-1,n based on P_m,n and P_m+1,n
-        DO m = l, 0, -1
+        DO m = l-1, 1, -1
             result(ind - 1) = (2 * m * cot_val * result(ind)) + result(ind + 1)
             result(ind - 1) = -result(ind - 1) / ((l + m) * (l - m + 1))
 
@@ -72,9 +93,9 @@ SUBROUTINE pmlcos_full(l_max,theta,result)
         END DO
 
         factorial = 1.0
-        DO m = 1, l
+        DO m = 1, l, 1
             factorial = -factorial / ((l + m) * (l - m + 1))
-            result(ind) = result(ind + (2 * m)) * factorial
+            result(ind - 1) = result(ind + (2 * m - 1)) * factorial
 
             ind = ind - 1
         END DO
