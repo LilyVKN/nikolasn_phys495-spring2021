@@ -1,0 +1,6 @@
+set(SUBSRCDIR ./fmm/)
+
+SET(FMMSRC fmm.f90 tll.f90 tlm.f90 tmm.f90)
+list(TRANSFORM FMMSRC PREPEND ${SUBSRCDIR})
+
+list(APPEND SOURCES ${FMMSRC})

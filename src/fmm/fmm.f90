@@ -1,0 +1,8 @@
+PROGRAM main
+    INTEGER, PARAMETER :: L_MAX = 20
+    INTEGER, PARAMETER :: R = 6
+    INTEGER, PARAMETER :: BOX_COUNT = ((8**(R+1)) - 1) / 7
+
+    COMPLEX, DIMENSION(BOX_COUNT,L_MAX**2) :: multipoles, locals
+
+END PROGRAM main
