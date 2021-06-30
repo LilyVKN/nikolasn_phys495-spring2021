@@ -14,7 +14,7 @@ MODULE sim_params
     INTEGER, PARAMETER :: SUBSTEPS_PER_FRAME = 20
 
     ! simulation variables
-    INTEGER :: PCOUNT = 486                     ! number of particles
+    INTEGER :: PCOUNT = 100                     ! number of particles
     REAL, PARAMETER :: MASS = 0.1               ! mass per particle
     REAL, PARAMETER :: PI = 4.0 * ATAN(1.0)     ! retrieve pi from computer
     REAL, PARAMETER :: G = 0.01                 ! gravitational constant

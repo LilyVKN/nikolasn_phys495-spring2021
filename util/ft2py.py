@@ -66,7 +66,7 @@ def read_FTCache(filename):
             line = data[i].split()
 
             # Make sure there are only three values to match the format
-            if len(line) != 3:
+            if len(line) < 3:
                 print("Error: mismatch in position dimensions")
                 print("\tLine {} of file {}",line,filename)
                 quit()
