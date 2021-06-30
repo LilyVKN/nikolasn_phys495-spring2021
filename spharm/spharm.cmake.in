@@ -1,0 +1,8 @@
+libdir=@CMAKE_INSTALL_FULL_LIBDIR@
+includedir=@CMAKE_INSTALL_FULL_INCLUDEDIR@
+
+Name: SpHarm Library
+Description: FORTRAN library of Spherical Harmonic Subprograms
+Version: @FMM_VERSION@
+URL: https://github.com/NikolasVKN/nikolasn_phys495-spring2021
+Libs: -L${libdir} -l@SPHARM@
